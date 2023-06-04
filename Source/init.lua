@@ -111,7 +111,7 @@ function ChatCommands.Interface:SetPrefix(newPrefix)
 	ChatCommands.Prefix = newPrefix
 end
 
-function ChatCommands.Interface:Start()
+function ChatCommands:Init()
 	for _, player in Players:GetPlayers() do
 		ChatCommands.Internal:OnPlayerAdded(player)
 	end
@@ -128,6 +128,8 @@ function ChatCommands.Interface:Start()
 		ChatCommands.Connections[player]:Disconnect()
 		ChatCommands.Connections[player] = nil
 	end)
+
+	return ChatCommands.Interface
 end
 
-return ChatCommands.Interface
+return ChatCommands:Init()

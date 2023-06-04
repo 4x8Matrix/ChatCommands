@@ -7,5 +7,3 @@ ChatCommands.Command.new("Test", function(player, ...)
 end)
 	:SetDescription("Test Command!")
 	:AddAlias("A")
-
-ChatCommands:Start()
