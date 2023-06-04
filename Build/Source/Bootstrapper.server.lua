@@ -9,7 +9,7 @@ if RunService:IsStudio() and not script.Parent.Development.Enabled then
 
 	TestEz.TestBootstrap:run({
 		ReplicatedStorage.UnitTests,
-		ReplicatedStorage.Packages.CommandO
+		ReplicatedStorage.Packages.ChatCommands
 	}, Reporter)
 
 	Reporter:Print()

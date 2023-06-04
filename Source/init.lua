@@ -1,5 +1,4 @@
 -- // Services
-local TextChatService = game:GetService("TextChatService")
 local Players = game:GetService("Players")
 
 -- // Dependencies
@@ -21,6 +20,7 @@ ChatCommands.Prefix = DEFAULT_CHAT_COMMANDS_PREFIX
 
 ChatCommands.Internal = { }
 ChatCommands.Interface = { }
+ChatCommands.Connections = { }
 
 ChatCommands.Interface.Command = require(script.Command)
 
@@ -89,42 +89,9 @@ function ChatCommands.Internal:OnMessageRecieved(player, message)
 	end
 end
 
-function ChatCommands.Internal:StartLegacy()
-	local playerConnections = { }
-
-	local function createChatCommandConnection(player)
-		playerConnections[player] = player.Chatted:Connect(function(message)
-			ChatCommands.Internal:OnMessageRecieved(player, message)
-		end)
-	end
-
-	for _, player in Players:GetPlayers() do
-		createChatCommandConnection(player)
-	end
-
-	Players.PlayerAdded:Connect(function(player)
-		createChatCommandConnection(player)
-	end)
-
-	Players.PlayerRemoving:Connect(function(player)
-		if not playerConnections[player] then
-			return
-		end
-
-		playerConnections[player]:Disconnect()
-		playerConnections[player] = nil
-	end)
-end
-
-function ChatCommands.Internal:Start()
-	TextChatService.MessageReceived:Connect(function(textChatMessage)
-		local player = Players:GetPlayerByUserId(textChatMessage.TextSource.UserId)
-
-		if not player then
-			return
-		end
-
-		ChatCommands.Internal:OnMessageRecieved(player, textChatMessage.Text)
+function ChatCommands.Internal:OnPlayerAdded(player)
+	ChatCommands.Connections[player] = player.Chatted:Connect(function(message)
+		ChatCommands.Internal:OnMessageRecieved(player, message)
 	end)
 end
 
@@ -145,11 +112,22 @@ function ChatCommands.Interface:SetPrefix(newPrefix)
 end
 
 function ChatCommands.Interface:Start()
-	if TextChatService.ChatVersion == Enum.ChatVersion.LegacyChatService then
-		ChatCommands.Internal:StartLegacy()
-	else
-		ChatCommands.Internal:Start()
+	for _, player in Players:GetPlayers() do
+		ChatCommands.Internal:OnPlayerAdded(player)
 	end
+
+	Players.PlayerAdded:Connect(function(player)
+		ChatCommands.Internal:OnPlayerAdded(player)
+	end)
+
+	Players.PlayerRemoving:Connect(function(player)
+		if not ChatCommands.Connections[player] then
+			return
+		end
+
+		ChatCommands.Connections[player]:Disconnect()
+		ChatCommands.Connections[player] = nil
+	end)
 end
 
 return ChatCommands.Interface

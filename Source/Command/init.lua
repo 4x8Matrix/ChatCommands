@@ -1,3 +1,6 @@
+-- // External Imports
+local Signal = require(script.Parent.Parent.Signal)
+
 -- // Module
 local Command = { }
 
@@ -7,6 +10,9 @@ Command.Interface = { }
 Command.Instances = { }
 Command.Aliases = { }
 Command.Prototype = { }
+
+Command.Interface.CommandAdded = Signal.new()
+Command.Interface.CommandRemoved = Signal.new()
 
 -- // Prototype functions
 function Command.Prototype:SetDescription(description)
@@ -32,13 +38,24 @@ function Command.Prototype:RemoveArgument(argument)
 end
 
 function Command.Prototype:AddAlias(alias)
-	Command.Aliases[string.lower(alias)] = self
+	alias = string.lower(alias)
+
+	Command.Aliases[alias] = self
+	table.insert(self._aliases, alias)
 
 	return self
 end
 
 function Command.Prototype:RemoveAlias(alias)
+	alias = string.lower(alias)
+
 	Command.Aliases[alias] = nil
+
+	local aliasIndex = table.find(self._aliases, alias)
+
+	if aliasIndex then
+		table.remove(self._aliases, alias)
+	end
 
 	return self
 end
@@ -59,14 +76,26 @@ function Command.Prototype:ToString()
 	return `{Command.Type}<"{self.command}">`
 end
 
+function Command.Prototype:Destroy()
+	for _, alias in self._aliases do
+		Command.Aliases[alias] = nil
+	end
+
+	Command.Instances[self.command] = nil
+	Command.Interface.CommandRemoved:Fire(self.command)
+end
+
 -- // Module functions
 function Command.Interface.new(commandName, callbackFn)
+	commandName = string.lower(commandName)
+
 	local commandObject = setmetatable({
 		command = commandName,
 
 		_callbackFn = callbackFn,
 		_arguments = { },
-		_description = ""
+		_description = "",
+		_aliases = { }
 	}, {
 		__index = Command.Prototype,
 		__type = Command.Type,
@@ -76,7 +105,7 @@ function Command.Interface.new(commandName, callbackFn)
 		end
 	})
 
-	commandName = string.lower(commandName)
+	Command.Interface.CommandAdded:Fire(commandName)
 
 	Command.Instances[commandName] = commandObject
 	return Command.Instances[commandName]
